@@ -231,7 +231,25 @@ l'historique antérieur ne se rattrape pas.** C'est l'oubli classique : à faire
 production, pas trois semaines plus tard.
 
 ### 3.2 Événements clés (conversions)
-Admin → Événements → marquer comme événement clé :
+
+**Un événement clé se marque avec l'étoile**, sur Admin → Événements → onglet *Événements récents*, à
+gauche du nom. L'étoile n'apparaît que sur un événement **déjà reçu au moins une fois** : il n'existe pas
+de moyen de déclarer une conversion à l'avance. Il faut donc faire partir l'événement d'abord.
+
+> ⚠️ **Ne pas utiliser « Créer un événement »**, le bouton bleu de ce même écran. Il fabrique un événement
+> *dérivé* d'un autre : l'événement source continue de partir et le dérivé s'y ajoute, donc le même geste
+> utilisateur est compté deux fois. Il existe pour les sites dont on ne peut pas modifier le taggage. Ici
+> on le peut — les douze événements du plan partent du code avec leurs paramètres. Aucun ne doit être
+> recréé dans GA4.
+>
+> Même logique côté GTM : **une seule balise de configuration GA4** par Measurement ID. Une seconde
+> doublerait les `page_view`. Le conteneur en a déjà une, `00_GA4` — on la complète, on ne la duplique pas.
+
+Les dimensions du §3.1, elles, **ne dépendent pas des événements** : le champ « Paramètre d'événement »
+est libre, on y saisit `lp_id` ou `error_type` avant leur première occurrence. Et il le faut, puisqu'une
+dimension déclarée après coup ne récupère pas l'historique.
+
+Les quatre à étoiler, dès qu'ils apparaissent :
 
 | Événement | Origine | Ce qu'il mesure |
 |---|---|---|
@@ -239,6 +257,9 @@ Admin → Événements → marquer comme événement clé :
 | `contact_request` | landing | intention de contact — voir la réserve sur les `mailto:` |
 | `sign_up` | app | compte créé |
 | `first_route_created` | app | activation réelle |
+
+La liste *Événements récents* peut mettre jusqu'à 24 h à se peupler. **DebugView**, lui, est instantané :
+c'est là qu'on valide le taggage, pas ici.
 
 ### 3.3 Google Ads
 Une fois `generate_lead` et `sign_up` remontés : Admin → Association de produits → Google Ads, puis
