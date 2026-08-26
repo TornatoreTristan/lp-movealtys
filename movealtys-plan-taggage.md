@@ -150,22 +150,58 @@ Entreprise), `SegmentLanding.astro:259`.
 
 ## 3. Événements essentiels — app.movealtys.com
 
-C'est la moitié qui répond à « est-il allé au bout de l'inscription ». À implémenter par l'équipe app,
-avec **le même conteneur GTM / la même property GA4**.
+> Établi sur le code réel de l'application (bundle de production, août 2026), pas sur des hypothèses.
+> Le tableau exploitable est dans `movealtys-plan-taggage.csv`.
 
-| Événement | Déclencheur | Paramètres | Conversion |
-|---|---|---|---|
-| `sign_up_start` | Affichage de `/register` | `lp_id`, `plan`, `has_email_prefill` (bool) | non |
-| `sign_up_submit` | Soumission du formulaire | `lp_id`, `plan` | non |
-| `sign_up_error` | Erreur de validation / serveur | `error_type` (`email_taken`, `weak_password`, `server`) | non |
-| `sign_up` | **Compte créé** (event recommandé GA4) | `method`, `plan`, `lp_id` | **oui** |
-| `email_verified` | Email confirmé, si double opt-in | `lp_id` | non |
-| `onboarding_complete` | Fin du parcours d'onboarding | `lp_id`, `steps_completed` | non |
-| `first_route_created` | Première tournée calculée | `lp_id` | **oui** (activation) |
-| `login` | Connexion réussie (event recommandé GA4) | `method` | non |
+L'inscription ouvre un **essai gratuit de 14 jours**, sans choix d'offre. Le vrai bout de la chaîne n'est
+donc pas l'inscription mais l'**abonnement payé**, dans le tunnel `/subscription/*`.
 
-`sign_up_error` est ce qui rend le funnel actionnable : sans lui, un décrochage entre `sign_up_submit` et
-`sign_up` est un trou noir.
+| Prio | Événement | Déclencheur | Paramètres | Conversion |
+|---|---|---|---|---|
+| P1 | `sign_up_start` | montage de `Register.tsx` | `has_email_prefill` | non |
+| P1 | `sign_up_submit` | après validation cliente, avant `POST /users/register` | — | non |
+| P1 | `sign_up_error` | validation en échec ou erreur serveur | `error_type` | non |
+| P1 | `sign_up` | **compte créé** — l'essai démarre | — | **oui** |
+| P1 | `login` | `POST /users/login` réussi | — | non |
+| P2 | `email_verified` | route `/verify-email`, jeton validé | — | non |
+| P2 | `onboarding_step` | chacune des 4 étapes validée | `step_name` | non |
+| P1 | `onboarding_complete` | fin de `Onboarding.tsx` | — | non |
+| P2 | `route_builder_step` | chacune des 6 étapes de `NewTour.tsx` | `step_name` | non |
+| P1 | `first_route_created` | **première tournée enregistrée**, une fois par compte | — | **oui** |
+| P1 | `view_pricing` | affichage de `/subscription/pricing` | — | non |
+| P1 | `begin_checkout` | affichage de `/subscription/checkout` | `plan`, `value`, `currency` | non |
+| P1 | `purchase` | **abonnement payé** | `plan`, `value`, `currency`, `transaction_id` | **oui** |
+| P2 | `invite_sent` | invitation d'équipe envoyée | — | non |
+| P2 | `invite_accepted` | invitation acceptée, compte créé | — | non |
+
+**Valeurs, tirées du code de l'app :**
+
+| Paramètre | Valeurs |
+|---|---|
+| `error_type` | `password_too_short` · `password_mismatch` · `first_name_too_short` · `last_name_too_short` · `company_name_too_short` · `email_taken` · `server` |
+| `step_name` (onboarding) | `company_info` · `company_details` · `legal_consent` · `user_preferences` |
+| `step_name` (tournée) | `general_info` · `vehicle_selection` · `route_planning` · `salary_config` · `additional_charges` · `cost_estimation` |
+| `plan` | `starter` · `premium` · `enterprise` |
+
+### Ce qu'il n'y a pas à mesurer
+
+**Pas de `method` d'authentification.** `Register.tsx` et `Login.tsx` ne proposent que l'e-mail et le mot
+de passe — six champs à l'inscription : `first_name`, `last_name`, `company_name`, `email`, `password`,
+`password_confirmation`. Aucun Google, aucun Microsoft, aucun SSO.
+
+**Pas de `plan` à l'inscription.** L'offre se choisit après l'essai, dans `/subscription/*`. Le paramètre
+n'apparaît donc que sur `begin_checkout` et `purchase`.
+
+### Deux incohérences à trancher avec la landing
+
+**Les identifiants de plan divergent.** La landing émet `independant` / `pro` / `entreprise`, l'app
+utilise `starter` / `premium` / `enterprise`. En l'état, impossible de joindre « a cliqué la carte Pro »
+et « a souscrit premium ». Aligner la landing sur les identifiants de l'app.
+
+**`Register.tsx` ne lit pas le paramètre `?email=`.** Aucun `useSearchParams` ni `URLSearchParams` dans le
+fichier. Le formulaire hero de la landing transmet donc une adresse pour rien — sans préremplir quoi que
+ce soit, et en créant le problème RGPD du §7. Soit l'app implémente la lecture, soit la landing cesse
+d'envoyer le champ.
 
 ---
 

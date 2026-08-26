@@ -89,210 +89,136 @@ une demande — et ne doit pas être importé comme conversion dans Google Ads.
 
 # Partie 2 — Brief pour le développeur d'app.movealtys.com
 
-> Ce brief est autonome. Tout ce qu'il faut savoir est ici.
+> **Ce brief est autonome.** Vous n'avez pas besoin de lire la partie 1, ni de connaître Google Tag
+> Manager. Tout est expliqué depuis le début.
 
-## 2.1 Le contexte en trois lignes
+---
 
-La landing `lp.movealtys.com` envoie des visiteurs sur `app.movealtys.com/register`. On sait aujourd'hui
-combien de personnes cliquent ; on ne sait pas combien vont au bout de l'inscription, ni d'où elles
-venaient. Votre travail : fermer ce trou.
+## 2.1 Le problème qu'on vous demande de résoudre
 
-Trois choses à implémenter, dans cet ordre : **récupérer l'identifiant d'attribution**, **respecter le
-consentement**, **pousser huit événements**. Aucune configuration GTM ou GA4 de votre côté — tout est déjà
-prêt et vous attend.
+Une landing page (`lp.movealtys.com`) fait de la publicité et envoie des visiteurs vers votre page
+d'inscription. Aujourd'hui on sait combien de personnes **cliquent**. On ne sait pas combien **créent
+réellement un compte**, ni **d'où elles venaient** (quelle pub, quel mot-clé, quelle campagne).
 
-## 2.2 Ce que la landing vous transmet
+Sans cette information, impossible de savoir quelle campagne publicitaire rapporte des clients et laquelle
+brûle du budget.
 
-`app.movealtys.com` est un sous-domaine de `movealtys.com`, donc les cookies posés par la landing vous
-sont **directement lisibles**, côté client comme côté serveur.
+**Votre travail : faire en sorte que l'app dise « cette inscription vient de la campagne X ».**
 
-### Cookie `mv_attr` — l'attribution
-
-Portée `.movealtys.com`, durée 13 mois. Contenu : du JSON, **encodé avec `encodeURIComponent`**.
-
-```json
-{
-  "lp_id": "3f2b8c14-9a7e-4d51-b0c8-6e2a91d47f3b",
-  "first_seen": "2026-08-26T14:32:07.412Z",
-  "landing_page": "/fr/tpe/",
-  "referrer": "https://www.google.com/",
-  "utm_source": "google",
-  "utm_medium": "cpc",
-  "utm_campaign": "tpe-cout-revient",
-  "gclid": "Cj0KCQ..."
-}
-```
-
-Seuls `lp_id`, `first_seen`, `landing_page` et `referrer` sont garantis. Les clés de campagne
-(`utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`, `gclid`, `gbraid`, `wbraid`,
-`msclkid`) n'apparaissent que si le visiteur est arrivé avec.
-
-```js
-const raw = document.cookie.match(/(?:^|;\s*)mv_attr=([^;]*)/)
-const attribution = raw ? JSON.parse(decodeURIComponent(raw[1])) : null
-```
-
-### Query params — le filet de sécurité
-
-Les liens de la landing vers l'app portent aussi `lp_id` et les paramètres de campagne en query string.
-Utilisez-les quand le cookie est absent : navigation privée, cookie bloqué, ITP.
+## 2.2 Comment ça marche — le modèle mental
 
 ```
-https://app.movealtys.com/register?email=…&lp_id=3f2b8c14-…&utm_source=google&utm_medium=cpc
+   Visiteur clique une pub Google
+              ↓
+   lp.movealtys.com/fr/
+              ↓  la landing écrit 2 cookies sur .movealtys.com :
+              ↓    mv_attr    = d'où vient ce visiteur + un identifiant unique (lp_id)
+              ↓    mv_consent = a-t-il accepté les cookies de mesure
+              ↓
+   app.movealtys.com/register?lp_id=…&utm_source=google
+              ↓  VOUS : lire lp_id, le garder, et signaler ce que fait l'utilisateur
+              ↓
+        window.dataLayer.push({ event: 'sign_up', lp_id: '…' })
+              ↓
+   Google Tag Manager (déjà configuré, rien à faire)
+              ↓
+   Google Analytics 4 → « 12 inscriptions, dont 8 venant de la campagne X »
 ```
 
-**Ordre de lecture recommandé :** query param d'abord (il reflète la visite en cours), cookie ensuite.
+**Le point important : vous ne parlez jamais directement à Google Analytics.** Vous écrivez dans un tableau
+JavaScript de la page, `window.dataLayer`. Un outil déjà installé, Google Tag Manager, surveille ce tableau
+et transmet à Analytics. Tout est déjà branché de ce côté — **vous n'avez aucune balise, aucun compte,
+aucune configuration Google à créer.**
 
-### Cookie `mv_consent` — la réponse au bandeau
+### Le vocabulaire, une fois pour toutes
 
-Valeur `granted` ou `denied`, portée `.movealtys.com`, durée 6 mois. Absent = le visiteur n'a pas encore
-répondu.
-
-## 2.3 Ce qu'il faut implémenter
-
-### A. Persister `lp_id` sur l'utilisateur — le plus important
-
-À la création du compte, écrivez `lp_id` **et la source d'acquisition** en base, sur l'enregistrement
-utilisateur. C'est ce qui permet, indépendamment de GA4 et sans dépendre d'aucun outil tiers, de produire
-la seule métrique qui compte : *nombre de clics « Essai gratuit » → nombre de comptes créés, par canal.*
-
-Champs suggérés : `lp_id`, `acquisition_source`, `acquisition_medium`, `acquisition_campaign`,
-`acquisition_gclid`, `landing_first_seen`.
-
-Si `lp_id` est absent, stockez `null` — n'inventez pas de valeur de remplacement, ce serait du bruit
-indistinguable d'une vraie attribution.
-
-### B. Respecter le consentement
-
-La landing n'injecte GTM qu'après acceptation. **Faites la même chose**, sinon un visiteur qui refuse sur
-la landing sera mesuré chez vous — alors même que son refus est lisible dans `mv_consent`.
-
-```js
-const consent = document.cookie.match(/(?:^|;\s*)mv_consent=([^;]*)/)?.[1]
-
-// Consent Mode v2, AVANT toute balise
-gtag('consent', 'default', {
-  ad_storage: 'denied', ad_user_data: 'denied',
-  ad_personalization: 'denied', analytics_storage: 'denied',
-  functionality_storage: 'granted', security_storage: 'granted',
-  wait_for_update: 500,
-})
-
-if (decodeURIComponent(consent ?? '') === 'granted') {
-  gtag('consent', 'update', {
-    ad_storage: 'granted', ad_user_data: 'granted',
-    ad_personalization: 'granted', analytics_storage: 'granted',
-  })
-  loadGtm() // conteneur GTM-KDVSW56S
-}
-```
-
-Si l'utilisateur arrive sans cookie `mv_consent` — accès direct à l'app, sans passer par la landing — il
-vous faut votre propre bandeau, qui écrit **le même cookie, sur le même domaine, avec les mêmes valeurs**.
-Sinon le visiteur répondra deux fois.
-
-L'implémentation de référence est lisible dans `src/scripts/consent.ts` et
-`src/components/analytics/Gtm.astro` du dépôt de la landing.
-
-### C. Purger l'e-mail de l'URL — bloquant, conformité
-
-Le formulaire de la landing envoie l'e-mail en query string : `…/register?email=jean@exemple.fr`. Si vous
-laissez ce paramètre dans l'URL, GA4 collecte une **adresse e-mail dans `page_location`**. C'est une
-donnée personnelle transmise à Google sans base légale, et une violation des conditions d'utilisation de
-GA4 — motif de suspension du compte.
-
-À faire **avant** la première balise :
-
-```js
-const url = new URL(window.location.href)
-if (url.searchParams.has('email')) {
-  prefillEmailField(url.searchParams.get('email'))
-  url.searchParams.delete('email')
-  window.history.replaceState({}, '', url)
-}
-```
-
-Et jamais d'e-mail, de nom ou de numéro de téléphone dans un paramètre d'événement.
-
-### D. Pousser les huit événements
-
-Un seul `dataLayer.push` par événement. Les valeurs vides ou inconnues : **omettez la clé**, ne poussez
-pas de chaîne vide.
-
-```js
-window.dataLayer = window.dataLayer || []
-window.dataLayer.push({
-  event: 'sign_up',
-  method: 'email',
-  plan: 'pro',
-  lp_id: '3f2b8c14-9a7e-4d51-b0c8-6e2a91d47f3b',
-})
-```
-
-| Événement | Quand le pousser | Paramètres |
-|---|---|---|
-| `sign_up_start` | affichage de `/register` | `lp_id`, `plan`, `has_email_prefill` (booléen) |
-| `sign_up_submit` | soumission du formulaire, avant l'appel serveur | `lp_id`, `plan` |
-| `sign_up_error` | échec de validation ou erreur serveur | `error_type` |
-| `sign_up` | **compte effectivement créé** | `method`, `plan`, `lp_id` |
-| `email_verified` | e-mail confirmé, si double opt-in | `lp_id` |
-| `onboarding_complete` | fin du parcours d'onboarding | `lp_id`, `steps_completed` |
-| `first_route_created` | **première tournée calculée** | `lp_id` |
-| `login` | connexion réussie | `method` |
-
-**Valeurs attendues :**
-
-| Paramètre | Valeurs |
+| Terme | Ce que c'est |
 |---|---|
-| `plan` | `independant` · `pro` · `entreprise` |
-| `method` | `email` · `google` · `microsoft` — le moyen d'authentification |
-| `error_type` | `email_taken` · `weak_password` · `invalid_email` · `server` |
-| `has_email_prefill` | `true` · `false` |
-| `lp_id` | l'UUID lu au §2.2, ou clé omise s'il est absent |
+| **`dataLayer`** | Un simple tableau JavaScript sur `window`. Vous y poussez des objets. C'est votre seule interface. |
+| **GTM** (Google Tag Manager) | Un script qui surveille le `dataLayer` et relaie vers les outils de mesure. Déjà configuré. |
+| **GA4** (Google Analytics 4) | L'outil de mesure final. Vous ne l'appelez jamais directement. |
+| **Consent Mode** | Le mécanisme Google pour savoir si on a le droit de mesurer. Il faut le renseigner avant toute mesure. |
+| **`lp_id`** | Un identifiant unique par visiteur, généré par la landing. C'est le fil rouge de toute l'opération. |
+| **`mv_attr`** | Le cookie où la landing range `lp_id` et la provenance du visiteur. |
+| **`mv_consent`** | Le cookie où la landing range la réponse au bandeau : `granted` ou `denied`. |
 
-**Les deux à ne pas négliger.** `sign_up_error` est ce qui rend le funnel exploitable : sans lui, un
-décrochage entre `sign_up_submit` et `sign_up` est un trou noir — on voit que les gens abandonnent, jamais
-pourquoi. `first_route_created` mesure l'activation réelle : un compte créé qui ne calcule jamais de
-tournée n'est pas un client.
+### Pourquoi les cookies de la landing vous sont accessibles
 
-## 2.4 Ce qui est déjà prêt — vous n'y touchez pas
+`app.movealtys.com` et `lp.movealtys.com` sont deux sous-domaines de `movealtys.com`. La landing pose ses
+cookies sur le domaine `.movealtys.com` — **avec le point devant** — ce qui les rend lisibles depuis tous
+les sous-domaines. Vous n'avez donc rien à négocier avec la landing : les cookies sont déjà là quand
+l'utilisateur arrive chez vous.
 
-Le conteneur **`GTM-KDVSW56S`** contient déjà :
+---
 
-- un déclencheur `CE - App events` dont l'expression régulière couvre vos huit noms d'événements ;
-- une balise `01_GA4_Events_Plan_Taggage` qui les relaie vers GA4 avec tous leurs paramètres ;
-- les variables de couche de données correspondantes.
+## 2.3 La spécification des événements
 
-Vous poussez dans le `dataLayer`, le reste part tout seul. **Aucune balise à créer.**
+**Le tableau des événements vit dans `movealtys-plan-taggage.csv`**, à ouvrir dans un tableur. Les valeurs
+autorisées de chaque paramètre sont dans `movealtys-plan-taggage-parametres.csv`.
 
-## 2.5 Ce qu'il ne faut pas faire
+Une seule source de vérité, volontairement : dupliquer le tableau dans plusieurs documents, c'est
+garantir qu'ils divergeront.
 
-**N'ajoutez pas de seconde balise de configuration GA4.** Le conteneur en a une, `00_GA4`. Une deuxième
-sur le même Measurement ID doublerait tous les `page_view`.
+La version mise en page, avec le module de code prêt à copier et les exemples d'intégration, est
+publiée ici : **https://claude.ai/code/artifact/d435fc34-30ac-46e7-b80c-a7ffa8938770**
 
-**Ne créez pas d'événement dans l'interface GA4** (bouton « Créer un événement »). Il fabrique un
-événement dérivé qui s'ajoute à l'original : le même geste utilisateur compté deux fois. Vos événements
-partent du code, c'est la bonne façon.
+## 2.4 Les cinq tâches
 
-**Ne renommez pas les événements.** Les noms ci-dessus sont ceux que le déclencheur attend ; un
-`signup_completed` à la place de `sign_up` ne remontera nulle part, silencieusement.
+| # | Tâche | Où | Effort |
+|---|---|---|---|
+| 1 | Copier le module `tracking.js` et l'initialiser | front, au démarrage | 30 min |
+| 2 | Trancher le paramètre `email` de l'URL | front, `Register.tsx` | 20 min |
+| 3 | Appeler les fonctions de suivi aux bons moments | front, 13 endroits | 3 h |
+| 4 | Stocker `lp_id` et l'acquisition en base | back | 1 h |
+| 5 | Ajouter un bandeau de consentement | front | 2 h |
 
-**N'envoyez pas de donnée personnelle** en paramètre : ni e-mail, ni nom, ni téléphone, ni identifiant
-client interne exploitable seul.
+La 4 est la plus importante : Google Analytics peut tomber, être bloqué ou être remplacé dans deux ans ;
+ce qui est en base, non.
 
-## 2.6 Recette
+## 2.5 Ce que le code de l'app impose
 
-Avec le mode Aperçu GTM actif sur `app.movealtys.com` :
+Relevé dans le bundle de production, août 2026.
 
-- [ ] Arrivée depuis la landing : `lp_id` lisible, en cookie **et** en query param.
-- [ ] Arrivée en navigation privée : `lp_id` toujours lisible, via le query param.
-- [ ] Le paramètre `email` a disparu de l'URL avant la première balise ; `page_location` n'en contient pas.
-- [ ] Refus du consentement : onglet Réseau, **zéro** requête vers `googletagmanager.com` et `google-analytics.com`.
-- [ ] Consentement donné sur la landing, puis navigation vers l'app : **aucun second bandeau**.
-- [ ] Parcours d'inscription complet : `sign_up_start` → `sign_up_submit` → `sign_up` dans DebugView, chacun avec son `lp_id`.
-- [ ] Inscription avec un e-mail déjà pris : `sign_up_error` avec `error_type: 'email_taken'`.
-- [ ] Session GA4 **continue** entre la landing et l'app : même `session_id`, source d'origine conservée, aucun `movealtys.com / referral`.
-- [ ] En base : le compte créé porte bien son `lp_id` et sa source d'acquisition.
+**Six champs à l'inscription** — `first_name`, `last_name`, `company_name`, `email`, `password`,
+`password_confirmation`. **Aucun login social**, donc aucun paramètre `method` à mesurer.
 
-Le dernier point est le plus important. Les huit autres se rattrapent ; une inscription enregistrée sans
-attribution est définitivement perdue.
+**Un essai gratuit de 14 jours, sans choix d'offre.** Le plan n'existe qu'à partir de `/subscription/*`,
+donc `plan` n'apparaît que sur `begin_checkout` et `purchase`. Identifiants réels : `starter`, `premium`,
+`enterprise`.
+
+**Quatre étapes d'onboarding** — `company_info`, `company_details`, `legal_consent`, `user_preferences`.
+
+**Six étapes dans le créateur de tournée** — `general_info`, `vehicle_selection`, `route_planning`,
+`salary_config`, `additional_charges`, `cost_estimation`.
+
+**`Register.tsx` ne lit pas `?email=`.** Aucun `useSearchParams`, aucun `URLSearchParams`. Le formulaire
+hero de la landing envoie donc une adresse pour rien, tout en créant un problème RGPD. À trancher : soit
+l'app implémente le préremplissage et purge le paramètre de l'URL, soit la landing cesse de l'envoyer.
+
+## 2.6 Le funnel visé
+
+```
+page_view (landing)
+  → cta_signup_click
+  → sign_up_start → sign_up_submit → sign_up      ← essai 14 jours ouvert
+  → onboarding_complete
+  → first_route_created                            ← activation réelle
+  → view_pricing → begin_checkout → purchase       ← client payant
+```
+
+C'est `purchase` qu'il faudra importer dans Google Ads, pas `sign_up` : optimiser les enchères sur des
+inscriptions à un essai gratuit attire du volume qui ne paie jamais.
+
+## 2.7 Ce qu'il ne faut pas faire
+
+**Aucune balise à créer dans GTM.** Le conteneur contient déjà le déclencheur `CE - App events`, qui
+reconnaît les quinze noms d'événements, et la balise qui les relaie vers Analytics.
+
+**Pas de seconde balise de configuration GA4.** Une deuxième doublerait toutes les pages vues.
+
+**Pas d'événement créé dans l'interface GA4.** Le bouton « Créer un événement » fabrique un dérivé qui
+s'ajoute à l'original : le même geste compté deux fois.
+
+**Pas de renommage.** Un `signup_completed` à la place de `sign_up` ne remonte nulle part, silencieusement.
+
+**Aucune donnée personnelle en paramètre** : ni e-mail, ni nom, ni téléphone.

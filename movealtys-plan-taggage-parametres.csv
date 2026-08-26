@@ -1,0 +1,18 @@
+Parametre,Portee,Valeurs,Remarque
+page_type,tous,home | segment | legal | 404,Pose par la landing sur <body>
+segment,tous,home | independants | tpe | livraison-locale | flotte-interne | none,Pose par la landing sur <body>
+page_lang,tous,fr | en,Langue du contenu (pas celle du navigateur)
+lp_id,tous,UUID,Le fil qui relie une inscription a la campagne d'origine
+cta_location,landing,header | header_mobile | hero_form | pricing_card | pricing_enterprise | final_cta | footer | segment_hero | segment_pricing | segment_final_cta,
+cta_destination,landing,register | login | mailto,
+cta_label,landing,Le libelle affiche du bouton,
+contact_location,landing,footer | final_cta | pricing_enterprise | segment_final_cta,
+contact_method,landing,mailto,
+lead_type,landing,email_prefill,
+plan,landing + app,starter | premium | enterprise,IDENTIFIANTS REELS DE L'APP — a aligner cote landing (voir note)
+has_email_prefill,app,true | false,Seulement si l'app implemente la lecture du parametre email
+error_type,app,password_too_short | password_mismatch | first_name_too_short | last_name_too_short | company_name_too_short | email_taken | server,Tires des vraies validations de Register.tsx
+step_name,app,company_info | company_details | legal_consent | user_preferences | general_info | vehicle_selection | route_planning | salary_config | additional_charges | cost_estimation,Les 4 etapes d'onboarding et les 6 du createur de tournee
+value,app,Montant en euros,Pour begin_checkout et purchase
+currency,app,EUR,
+transaction_id,app,Identifiant unique de la transaction,Evite les doublons dans GA4

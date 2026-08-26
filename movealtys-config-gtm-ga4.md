@@ -166,7 +166,7 @@ l'autre, et une erreur de regex ne coupe pas la mesure des deux côtés à la fo
 
 **`CE - App events`**
 ```
-^(sign_up_start|sign_up_submit|sign_up_error|sign_up|email_verified|onboarding_complete|first_route_created|login)$
+^(sign_up_start|sign_up_submit|sign_up_error|sign_up|login|email_verified|onboarding_step|onboarding_complete|route_builder_step|first_route_created|view_pricing|begin_checkout|purchase|invite_sent|invite_accepted)$
 ```
 
 Ajouter un événement au plan, c'est donc une seule chose à faire : l'ajouter à la regex du déclencheur
@@ -182,11 +182,11 @@ concerné. Rien d'autre ne bouge — ni la balise, ni les variables.
 
 **b. Événement GA4 — une seule balise pour les quatre événements**
 - Nom de l'événement : `{{Event}}` (variable intégrée : reprend le nom poussé dans le `dataLayer`)
-- Paramètres d'événement : les douze variables du §2.1, chacune sous son propre nom
+- Paramètres d'événement : les dix-huit variables du §2.1, chacune sous son propre nom
 - Déclencheurs : `CE - Landing events` **et** `CE - App events`
 
 GTM omet automatiquement les paramètres dont la variable est vide, donc `contact_location` ne part que
-sur `contact_request` et `plan` que depuis les cartes tarifs. **Une seule balise suffit pour les douze
+sur `contact_request` et `plan` que depuis les cartes tarifs. **Une seule balise suffit pour les dix-neuf
 événements des trois propriétés** ; en ajouter une par événement ne changerait rien à la donnée et
 multiplierait la maintenance par douze.
 
@@ -225,6 +225,8 @@ Admin → **Définitions personnalisées** → Créer, portée **Événement**, 
 | Page language | `page_lang` |
 | Landing ID | `lp_id` |
 | Error type | `error_type` *(côté app)* |
+| Step name | `step_name` *(côté app)* |
+| Has email prefill | `has_email_prefill` *(côté app)* |
 
 **Sans cette déclaration, les paramètres sont collectés mais invisibles dans les rapports, et
 l'historique antérieur ne se rattrape pas.** C'est l'oubli classique : à faire le jour de la mise en

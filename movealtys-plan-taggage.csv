@@ -1,0 +1,20 @@
+Priorite,Perimetre,Evenement,Quand exactement,Source,Parametres,Conversion,Statut
+P1,landing,cta_signup_click,Clic sur un bouton « Essai gratuit » (10 emplacements),Header/Hero/Pricing/FinalCta/Footer/SegmentLanding,"cta_location, cta_destination, cta_label, plan",non,Fait
+P1,landing,generate_lead,Soumission du formulaire hero,Hero.astro,"lead_type, cta_location",OUI,Fait
+P1,landing,cta_login_click,Clic sur « Connexion » (3 emplacements),Header/Footer,"cta_location, cta_destination, cta_label",non,Fait
+P1,landing,contact_request,Clic sur un CTA mailto: (4 emplacements),Footer/FinalCta/Pricing/SegmentLanding,"contact_location, contact_method, plan",OUI (pas dans Ads),Fait
+P1,app,sign_up_start,Affichage de /register,src/pages/auth/Register.tsx,has_email_prefill,non,A FAIRE
+P1,app,sign_up_submit,Clic sur « Créer mon compte » avant l'appel API,src/pages/auth/Register.tsx,-,non,A FAIRE
+P1,app,sign_up_error,Erreur de validation cliente ou reponse en erreur de POST /users/register,src/pages/auth/Register.tsx,error_type,non,A FAIRE
+P1,app,sign_up,Compte cree — demarre l'essai gratuit de 14 jours,src/pages/auth/Register.tsx,-,OUI,A FAIRE
+P1,app,login,Connexion reussie via POST /users/login,src/pages/auth/Login.tsx,-,non,A FAIRE
+P2,app,email_verified,Arrivee sur /verify-email avec un jeton valide,route /verify-email,-,non,A FAIRE
+P2,app,onboarding_step,Validation de chaque etape de l'onboarding (4 etapes),src/pages/onboarding/steps/,step_name,non,A FAIRE
+P1,app,onboarding_complete,Fin de l'onboarding — 4e etape validee,src/pages/onboarding/Onboarding.tsx,-,non,A FAIRE
+P2,app,route_builder_step,Validation de chaque etape du createur de tournee (6 etapes),src/pages/routes/components/,step_name,non,A FAIRE
+P1,app,first_route_created,Toute premiere tournee enregistree — une seule fois par compte,src/pages/routes/NewTour.tsx (POST /api/tour-cost/save),-,OUI,A FAIRE
+P1,app,view_pricing,Affichage de /subscription/pricing,route /subscription/pricing,-,non,A FAIRE
+P1,app,begin_checkout,Affichage de /subscription/checkout,route /subscription/checkout,"plan, value, currency",non,A FAIRE
+P1,app,purchase,Abonnement paye — fin de l'essai converti en client,route /subscription/checkout,"plan, value, currency, transaction_id",OUI,A FAIRE
+P2,app,invite_sent,Invitation d'un membre d'equipe envoyee,route /team,-,non,A FAIRE
+P2,app,invite_accepted,Invitation acceptee et compte cree,src/pages/invitation/AcceptInvitationPage.tsx,-,non,A FAIRE
