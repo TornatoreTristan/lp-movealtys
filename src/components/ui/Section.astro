@@ -1,0 +1,23 @@
+---
+import type { HTMLAttributes } from 'astro/types'
+
+interface Props extends HTMLAttributes<'section'> {
+  id?: string
+  /** Background treatment for the section band. */
+  tone?: 'white' | 'surface' | 'ink'
+}
+
+const { id, tone = 'white', class: className, ...rest } = Astro.props
+
+const tones = {
+  white: 'bg-white',
+  surface: 'bg-ink-50',
+  ink: 'bg-ink-950 text-white',
+} as const
+---
+
+<section id={id} class:list={['scroll-mt-24 py-20 sm:py-28', tones[tone], className]} {...rest}>
+  <div class="container-page">
+    <slot />
+  </div>
+</section>

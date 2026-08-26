@@ -1,0 +1,132 @@
+---
+import { localizePath, type Locale } from '../i18n/config'
+import { useContent, APP_URLS, CONTACT } from '../i18n/content'
+import { ANALYTICS_ENABLED } from '../lib/tracking'
+import LanguageSwitcher from './LanguageSwitcher.astro'
+
+interface Props {
+  locale: Locale
+}
+
+const { locale } = Astro.props
+const t = useContent(locale)
+const year = 2026
+
+interface FooterLink {
+  href: string
+  label: string
+  /** Set when the link is part of the tagging plan; see movealtys-plan-taggage.md. */
+  track?: string
+  destination?: 'register' | 'login' | 'mailto'
+}
+
+const columns: { title: string; links: FooterLink[] }[] = [
+  {
+    title: t.footer.productTitle,
+    links: [
+      { href: '#features', label: t.nav.features },
+      { href: '#how', label: t.nav.how },
+      { href: '#audience', label: t.nav.audience },
+      { href: localizePath(locale, 'independants'), label: t.nav.independents },
+      { href: localizePath(locale, 'tpe'), label: t.nav.tpe },
+      { href: localizePath(locale, 'livraison-locale'), label: t.nav.localDelivery },
+      { href: localizePath(locale, 'flotte-interne'), label: t.nav.internalFleet },
+      { href: '#pricing', label: t.nav.pricing },
+      { href: '#faq', label: t.nav.faq },
+    ],
+  },
+  {
+    title: t.footer.companyTitle,
+    links: [
+      { href: localizePath(locale, 'about'), label: t.footer.about },
+      {
+        href: `mailto:${CONTACT.email}`,
+        label: t.footer.contact,
+        track: 'contact_request',
+        destination: 'mailto',
+      },
+    ],
+  },
+  {
+    title: t.footer.legalTitle,
+    links: [
+      { href: localizePath(locale, 'legal'), label: t.footer.legalNotice },
+      { href: localizePath(locale, 'privacy'), label: t.footer.privacy },
+      { href: localizePath(locale, 'terms'), label: t.footer.terms },
+    ],
+  },
+]
+---
+
+<footer class="border-t border-ink-100 bg-white">
+  <div class="container-page grid gap-12 py-16 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+    <div class="flex flex-col gap-5">
+      <a href={`/${locale}/`} aria-label="MoveAltys">
+        <img src="/img/movealtys-logo.svg" alt="MoveAltys" width="151" height="32" class="h-8 w-auto" />
+      </a>
+      <p class="max-w-xs text-sm leading-relaxed text-muted">{t.footer.tagline}</p>
+      <LanguageSwitcher locale={locale} class="w-fit" />
+    </div>
+
+    {
+      columns.map((column) => (
+        <div class="flex flex-col gap-4">
+          <h3 class="text-sm font-bold text-ink-950">{column.title}</h3>
+          <ul class="flex flex-col gap-2.5">
+            {column.links.map((link) => (
+              <li>
+                <a
+                  href={link.href}
+                  class="text-sm text-muted transition hover:text-brand-600"
+                  data-track={link.track}
+                  data-cta-location={link.track ? 'footer' : undefined}
+                  data-cta-destination={link.destination}
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+  </div>
+
+  <div class="border-t border-ink-100">
+    <div class="container-page flex flex-col items-center justify-between gap-4 py-6 sm:flex-row">
+      <p class="text-xs text-ink-400">© {year} MoveAltys. {t.footer.rights}</p>
+      <div class="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold">
+        {
+          ANALYTICS_ENABLED && (
+            <button
+              type="button"
+              data-consent-open
+              hidden
+              class="font-semibold text-ink-500 transition hover:text-brand-600"
+            >
+              {t.footer.manageCookies}
+            </button>
+          )
+        }
+        <a
+          href={APP_URLS.login}
+          class="text-ink-600 transition hover:text-brand-600"
+          data-track="cta_login_click"
+          data-cta-location="footer"
+          data-cta-destination="login"
+        >
+          {t.nav.login}
+        </a>
+        <a
+          href={APP_URLS.register}
+          class="text-brand-600 transition hover:text-brand-700"
+          data-track="cta_signup_click"
+          data-cta-location="footer"
+          data-cta-destination="register"
+        >
+          {t.nav.signup}
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>

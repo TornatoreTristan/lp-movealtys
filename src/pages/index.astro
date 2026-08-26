@@ -1,0 +1,30 @@
+---
+import { DEFAULT_LOCALE, localizePath } from '../i18n/config'
+
+/**
+ * Landing target for a bare `/`.
+ *
+ * Deliberately a rendered page with a meta-refresh rather than an HTTP redirect:
+ * browsers cache 3xx responses per origin — a dev server on a shared port would
+ * then keep sending people to a stale destination long after the config changed.
+ * This behaves identically in dev and in the static build.
+ */
+const target = localizePath(DEFAULT_LOCALE, '')
+---
+
+<!doctype html>
+<html lang={DEFAULT_LOCALE}>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="refresh" content={`0; url=${target}`} />
+    <meta name="robots" content="noindex" />
+    <link rel="canonical" href={`https://lp.movealtys.com${target}`} />
+    <title>MoveAltys</title>
+  </head>
+  <body>
+    <a href={target}>MoveAltys</a>
+    <script is:inline define:vars={{ target }}>
+      window.location.replace(target)
+    </script>
+  </body>
+</html>

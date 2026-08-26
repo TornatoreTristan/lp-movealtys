@@ -1,0 +1,567 @@
+---
+import { type Locale } from '../../i18n/config'
+
+interface Props {
+  locale: Locale
+}
+
+const { locale } = Astro.props
+
+// Chrome labels live here rather than in content.ts — they describe the mock, not the offer.
+const labels = {
+  fr: {
+    title: 'Tournée du jour · 8 arrêts',
+    before: 'Avant',
+    after: 'Optimisée',
+    computing: 'Optimisation…',
+    distance: 'Distance',
+    cost: 'Coût de revient',
+    margin: 'Marge',
+    saved: '-18 % de km',
+    alt: "Comparaison d'une tournée avant et après optimisation, avec le coût de revient et la marge calculés.",
+  },
+  en: {
+    title: "Today's route · 8 stops",
+    before: 'Before',
+    after: 'Optimised',
+    computing: 'Optimising…',
+    distance: 'Distance',
+    cost: 'Cost price',
+    margin: 'Margin',
+    saved: '-18% km',
+    alt: 'Comparison of a route before and after optimisation, with the calculated cost price and margin.',
+  },
+} as const
+
+const l = labels[locale]
+
+// Each KPI plays two states: the figures for the route as entered, then the optimised ones.
+const kpis =
+  locale === 'fr'
+    ? [
+        { label: l.distance, before: '261 km', beforeNote: 'trajet saisi', after: '214 km', gain: '-47 km' },
+        { label: l.cost, before: '431 €', beforeNote: 'péages inclus', after: '386 €', gain: '-45 €' },
+        { label: l.margin, before: '14,3 %', beforeNote: 'estimée', after: '18,4 %', gain: '+4,1 pts' },
+      ]
+    : [
+        { label: l.distance, before: '261 km', beforeNote: 'entered route', after: '214 km', gain: '-47 km' },
+        { label: l.cost, before: '€431', beforeNote: 'tolls included', after: '€386', gain: '-€45' },
+        { label: l.margin, before: '14.3%', beforeNote: 'estimated', after: '18.4%', gain: '+4.1 pts' },
+      ]
+
+// Eight stops laid out on the mock map, in optimised visiting order.
+const stops = [
+  { x: 44, y: 196 },
+  { x: 96, y: 132 },
+  { x: 158, y: 158 },
+  { x: 208, y: 92 },
+  { x: 268, y: 118 },
+  { x: 312, y: 66 },
+  { x: 344, y: 150 },
+  { x: 292, y: 206 },
+]
+
+/** Position each stop held in the order it was keyed in, before optimisation. */
+const inputOrder = [1, 3, 5, 2, 7, 4, 6, 8]
+
+const optimisedPath = stops.map((s, i) => `${i === 0 ? 'M' : 'L'}${s.x} ${s.y}`).join(' ')
+const naivePath = inputOrder
+  .map((position, index) => ({ position, stop: stops[index] }))
+  .sort((a, b) => a.position - b.position)
+  .map(({ stop }, i) => `${i === 0 ? 'M' : 'L'}${stop.x} ${stop.y}`)
+  .join(' ')
+
+// Stylised street map behind the route. Purely decorative geometry, drawn very low
+// contrast so the optimised path and the stop markers stay the subject.
+const parks = [
+  { x: 172, y: 222, w: 72, h: 34 },
+  { x: 304, y: 0, w: 52, h: 36 },
+  { x: 0, y: 222, w: 46, h: 34 },
+]
+
+const river = 'M-6 26 C 42 48, 32 84, 68 100 C 100 114, 92 136, 66 158 C 42 178, 34 214, 44 256'
+
+// Street grid: strictly rectilinear, unevenly spaced so it reads as a city, not graph paper.
+const minorStreets = [
+  'M-6 36 H394',
+  'M-6 128 H394',
+  'M-6 222 H394',
+  'M46 -6 V256',
+  'M172 -6 V256',
+  'M244 -6 V256',
+  'M356 -6 V256',
+].join(' ')
+
+const arterials = ['M-6 76 H394', 'M-6 182 H394', 'M112 -6 V256', 'M304 -6 V256'].join(' ')
+---
+
+<figure class="route-visual relative">
+  <div
+    class="overflow-hidden rounded-[5px] bg-white shadow-lift ring-1 ring-ink-950/5"
+    role="img"
+    aria-label={l.alt}
+  >
+    <!-- Window chrome -->
+    <div class="flex items-center gap-3 border-b border-ink-100 bg-ink-50/70 px-5 py-3.5">
+      <span class="flex gap-1.5" aria-hidden="true">
+        <span class="size-2.5 rounded-full bg-ink-200"></span>
+        <span class="size-2.5 rounded-full bg-ink-200"></span>
+        <span class="size-2.5 rounded-full bg-ink-200"></span>
+      </span>
+      <span class="text-xs font-semibold text-ink-600">{l.title}</span>
+
+      <!-- Two chips share one cell: the solver runs, then the saving lands. -->
+      <span class="ml-auto grid justify-items-end">
+        <span
+          class="chip-computing col-start-1 row-start-1 flex items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-[0.65rem] font-bold tracking-wide whitespace-nowrap text-brand-700"
+        >
+          <span class="spinner size-2 rounded-full border border-brand-200 border-t-brand-600"></span>
+          {l.computing}
+        </span>
+        <span
+          class="chip-saved col-start-1 row-start-1 rounded-full bg-mint-50 px-2.5 py-1 text-[0.65rem] font-bold tracking-wide whitespace-nowrap text-mint-700"
+          >{l.saved}</span
+        >
+      </span>
+    </div>
+
+    <!-- Map -->
+    <div class="relative">
+      <svg viewBox="0 0 388 250" class="block w-full" aria-hidden="true">
+        <defs>
+          <linearGradient id="routeStroke" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#5e93ff"></stop>
+            <stop offset="100%" stop-color="#144ae1"></stop>
+          </linearGradient>
+        </defs>
+
+        <!-- Map backdrop: land, parks, water, then streets drawn light-on-dark. -->
+        <g>
+          <rect width="388" height="250" fill="#edf0f7"></rect>
+
+          {
+            parks.map((park) => (
+              <rect x={park.x} y={park.y} width={park.w} height={park.h} rx="6" fill="#e4eee7" />
+            ))
+          }
+
+          <path d={river} fill="none" stroke="#dbe7f7" stroke-width="13" stroke-linecap="round"></path>
+
+          <path
+            d={minorStreets}
+            fill="none"
+            stroke="#f6f8fc"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+
+          <path
+            d={arterials}
+            fill="none"
+            stroke="#ffffff"
+            stroke-width="6.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </g>
+
+        <!-- Solver pulse -->
+        <g class="scan-group">
+          <circle
+            class="scan"
+            cx="215"
+            cy="140"
+            r="40"
+            fill="none"
+            stroke="#327eff"
+            stroke-width="1.5"
+            vector-effect="non-scaling-stroke"></circle>
+          <circle
+            class="scan scan-late"
+            cx="215"
+            cy="140"
+            r="40"
+            fill="none"
+            stroke="#327eff"
+            stroke-width="1.5"
+            vector-effect="non-scaling-stroke"></circle>
+        </g>
+
+        <path
+          class="route-naive"
+          d={naivePath}
+          fill="none"
+          stroke="#a49dc0"
+          stroke-width="2"
+          stroke-dasharray="5 6"
+          stroke-linecap="round"
+          stroke-linejoin="round"></path>
+
+        <path
+          class="route-line"
+          d={optimisedPath}
+          fill="none"
+          stroke="url(#routeStroke)"
+          stroke-width="3.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"></path>
+
+        {
+          stops.map((stop, index) => (
+            <g class="stop" style={`--i:${index}`}>
+              <circle cx={stop.x} cy={stop.y} r="11" fill="#fff" stroke="#dbe6ff" stroke-width="1.5" />
+              <circle cx={stop.x} cy={stop.y} r="7.5" fill={index === 0 ? '#0c0045' : '#327eff'} />
+              <text
+                class="num-input"
+                x={stop.x}
+                y={stop.y + 3.2}
+                text-anchor="middle"
+                font-size="8"
+                font-weight="700"
+                fill="#fff"
+              >
+                {inputOrder[index]}
+              </text>
+              <text
+                class="num-optimised"
+                x={stop.x}
+                y={stop.y + 3.2}
+                text-anchor="middle"
+                font-size="8"
+                font-weight="700"
+                fill="#fff"
+              >
+                {index + 1}
+              </text>
+            </g>
+          ))
+        }
+      </svg>
+
+      <!-- Legend -->
+      <div
+        class="absolute bottom-3 left-4 flex items-center gap-4 rounded-full bg-white/90 px-3.5 py-1.5 text-[0.65rem] font-semibold text-ink-600 shadow-sm ring-1 ring-ink-100 backdrop-blur"
+      >
+        <span class="flex items-center gap-1.5">
+          <span class="h-0.5 w-5 rounded bg-ink-300"></span>{l.before}
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="h-0.5 w-5 rounded bg-brand-500"></span>{l.after}
+        </span>
+      </div>
+    </div>
+
+    <!-- KPI strip: each figure flips from the entered route to the optimised one. -->
+    <div class="grid grid-cols-3 divide-x divide-ink-100 border-t border-ink-100">
+      {
+        kpis.map((kpi) => (
+          <div class="px-4 py-4 sm:px-5">
+            <span class="block text-[0.65rem] font-semibold tracking-wide text-ink-400 uppercase">{kpi.label}</span>
+
+            <span class="mt-1 grid text-lg font-extrabold text-ink-950 sm:text-xl">
+              <span class="kpi-before col-start-1 row-start-1">{kpi.before}</span>
+              <span class="kpi-after col-start-1 row-start-1">{kpi.after}</span>
+            </span>
+
+            <span class="mt-0.5 grid text-[0.7rem] font-semibold">
+              <span class="kpi-before col-start-1 row-start-1 whitespace-nowrap text-ink-400">{kpi.beforeNote}</span>
+              <span class="kpi-after col-start-1 row-start-1 whitespace-nowrap text-mint-700">{kpi.gain}</span>
+            </span>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+
+  <figcaption class="sr-only">{l.alt}</figcaption>
+</figure>
+
+<style>
+  /*
+   * One shared 12s timeline, so every layer stays in phase without JS:
+   *   0–20%  stops drop in, numbered in the order they were keyed
+   *   20–25% the entered route joins them and the "before" figures land
+   *   25–36% the solver pulses
+   *   36–52% the optimised path draws and the stops renumber
+   *   52–93% the gains hold on screen, then everything fades out and repeats
+   */
+  .route-visual {
+    --seq: 12s;
+  }
+
+  .stop {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: stop-in var(--seq) var(--ease-out-soft) calc(var(--i, 0) * 0.26s) infinite both;
+  }
+
+  .num-input {
+    animation: num-out var(--seq) var(--ease-out-soft) calc(var(--i, 0) * 0.26s) infinite both;
+  }
+
+  .num-optimised {
+    animation: num-in var(--seq) var(--ease-out-soft) calc(var(--i, 0) * 0.26s) infinite both;
+  }
+
+  .route-naive {
+    animation: naive-in var(--seq) linear infinite both;
+  }
+
+  .route-line {
+    stroke-dasharray: 560;
+    animation: draw-route var(--seq) var(--ease-out-soft) infinite both;
+  }
+
+  .scan {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: scan-out var(--seq) var(--ease-out-soft) infinite both;
+  }
+
+  .scan-late {
+    animation-delay: 0.55s;
+  }
+
+  .spinner {
+    animation: spin 0.7s linear infinite;
+  }
+
+  .chip-computing {
+    animation: chip-computing var(--seq) var(--ease-out-soft) infinite both;
+  }
+
+  .chip-saved {
+    animation: chip-saved var(--seq) var(--ease-out-soft) infinite both;
+  }
+
+  .kpi-before {
+    animation: kpi-before var(--seq) var(--ease-out-soft) infinite both;
+  }
+
+  .kpi-after {
+    animation: kpi-after var(--seq) var(--ease-out-soft) infinite both;
+  }
+
+  @keyframes stop-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    3% {
+      opacity: 1;
+      transform: scale(1.18);
+    }
+    5% {
+      transform: scale(1);
+    }
+    93% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    97%,
+    100% {
+      opacity: 0;
+      transform: scale(0.7);
+    }
+  }
+
+  @keyframes num-out {
+    0%,
+    38% {
+      opacity: 1;
+    }
+    42%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes num-in {
+    0%,
+    38% {
+      opacity: 0;
+    }
+    42%,
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes naive-in {
+    0%,
+    17% {
+      opacity: 0;
+    }
+    23%,
+    40% {
+      opacity: 0.85;
+    }
+    50%,
+    93% {
+      opacity: 0.3;
+    }
+    97%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes draw-route {
+    0%,
+    36% {
+      stroke-dashoffset: 560;
+      opacity: 0;
+    }
+    37% {
+      opacity: 1;
+    }
+    52%,
+    93% {
+      stroke-dashoffset: 0;
+      opacity: 1;
+    }
+    97%,
+    100% {
+      stroke-dashoffset: 0;
+      opacity: 0;
+    }
+  }
+
+  @keyframes scan-out {
+    0%,
+    25% {
+      opacity: 0;
+      transform: scale(0.15);
+    }
+    27% {
+      opacity: 0.35;
+    }
+    36%,
+    100% {
+      opacity: 0;
+      transform: scale(5.2);
+    }
+  }
+
+  @keyframes chip-computing {
+    0%,
+    24% {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    27%,
+    35% {
+      opacity: 1;
+      transform: none;
+    }
+    38%,
+    100% {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+
+  @keyframes chip-saved {
+    0%,
+    52% {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    56% {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+    58%,
+    93% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    97%,
+    100% {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+  }
+
+  @keyframes kpi-before {
+    0%,
+    18% {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    24%,
+    50% {
+      opacity: 1;
+      transform: none;
+    }
+    55%,
+    100% {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+  }
+
+  @keyframes kpi-after {
+    0%,
+    50% {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    55%,
+    93% {
+      opacity: 1;
+      transform: none;
+    }
+    97%,
+    100% {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Reduced motion gets the end state of the story, held still. */
+  @media (prefers-reduced-motion: reduce) {
+    .stop,
+    .num-input,
+    .num-optimised,
+    .route-naive,
+    .route-line,
+    .scan,
+    .spinner,
+    .chip-computing,
+    .chip-saved,
+    .kpi-before,
+    .kpi-after {
+      animation: none;
+    }
+
+    .stop,
+    .num-optimised,
+    .chip-saved,
+    .kpi-after {
+      opacity: 1;
+      transform: none;
+    }
+
+    .route-line {
+      stroke-dashoffset: 0;
+      opacity: 1;
+    }
+
+    .route-naive {
+      opacity: 0.3;
+    }
+
+    .num-input,
+    .scan,
+    .chip-computing,
+    .kpi-before {
+      opacity: 0;
+    }
+  }
+</style>

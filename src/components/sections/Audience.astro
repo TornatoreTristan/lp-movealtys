@@ -1,0 +1,60 @@
+---
+import { localizePath, type Locale } from '../../i18n/config'
+import { useContent } from '../../i18n/content'
+import Section from '../ui/Section.astro'
+import SectionHeading from '../ui/SectionHeading.astro'
+
+interface Props {
+  locale: Locale
+}
+
+const { locale } = Astro.props
+const t = useContent(locale)
+---
+
+<Section id="audience" tone="surface">
+  <SectionHeading eyebrow={t.audience.eyebrow} title={t.audience.title} lead={t.audience.lead} />
+
+  <div class="mt-14 grid gap-6 md:grid-cols-2">
+    {
+      t.audience.items.map((item) => (
+        // Segments with a dedicated page get a stretched link covering the whole card.
+        <article
+          class:list={[
+            'relative flex flex-col gap-4 rounded-4xl border border-ink-100 bg-white p-8 transition duration-300',
+            item.href && 'hover:-translate-y-1 hover:border-brand-200 hover:shadow-card',
+          ]}
+          data-reveal
+        >
+          <span class="w-fit rounded-full bg-brand-50 px-3 py-1 text-xs font-bold tracking-wide text-brand-700 ring-1 ring-brand-100">
+            {item.profile}
+          </span>
+          <h3 class="text-lg font-bold text-ink-950 text-balance">{item.title}</h3>
+          <p class="text-sm leading-relaxed text-muted text-pretty">{item.body}</p>
+
+          {item.href && (
+            <a
+              href={localizePath(locale, item.href)}
+              aria-label={`${t.audience.cta} — ${item.profile}`}
+              class="mt-auto inline-flex w-fit items-center gap-1.5 pt-1 text-sm font-semibold text-brand-600 transition hover:text-brand-700 after:absolute after:inset-0 after:rounded-4xl"
+            >
+              {t.audience.cta}
+              <svg
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="size-3.5"
+                aria-hidden="true"
+              >
+                <path d="M4 10h11M11 6l4 4-4 4" />
+              </svg>
+            </a>
+          )}
+        </article>
+      ))
+    }
+  </div>
+</Section>

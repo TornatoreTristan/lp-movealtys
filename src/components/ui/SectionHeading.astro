@@ -1,0 +1,52 @@
+---
+interface Props {
+  eyebrow?: string
+  title: string
+  lead?: string
+  align?: 'left' | 'center'
+  tone?: 'light' | 'dark'
+}
+
+const { eyebrow, title, lead, align = 'center', tone = 'light' } = Astro.props
+
+// A lead may emphasise one fragment with **double asterisks**. Split on it rather than
+// injecting HTML: odd indexes are the emphasised parts.
+const leadParts = lead ? lead.split(/\*\*(.+?)\*\*/g) : []
+---
+
+<div
+  class:list={[
+    'flex max-w-3xl flex-col gap-4',
+    align === 'center' ? 'mx-auto items-center text-center' : 'items-start text-left',
+  ]}
+  data-reveal
+>
+  {
+    eyebrow && (
+      <span
+        class:list={[
+          'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-widest uppercase',
+          tone === 'dark' ? 'bg-white/10 text-brand-200' : 'bg-brand-50 text-brand-700',
+        ]}
+      >
+        {eyebrow}
+      </span>
+    )
+  }
+  <h2 class:list={['text-h2 font-extrabold text-balance', tone === 'dark' ? 'text-white' : 'text-ink-950']}>
+    {title}
+  </h2>
+  {
+    lead && (
+      <p class:list={['text-lg leading-relaxed text-pretty', tone === 'dark' ? 'text-ink-200' : 'text-muted']}>
+        {leadParts.map((part, index) =>
+          index % 2 === 1 ? (
+            <strong class:list={['font-bold', tone === 'dark' ? 'text-brand-300' : 'text-brand-600']}>{part}</strong>
+          ) : (
+            part
+          ),
+        )}
+      </p>
+    )
+  }
+</div>

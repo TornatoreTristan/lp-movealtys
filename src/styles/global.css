@@ -1,0 +1,117 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------
+   Design tokens — MoveAltys
+   Brand blue #327eff / ink navy #0c0045 extracted from the brand assets.
+   ------------------------------------------------------------------ */
+@theme {
+  --color-brand-50: #eef4ff;
+  --color-brand-100: #dbe6ff;
+  --color-brand-200: #bed3ff;
+  --color-brand-300: #91b6ff;
+  --color-brand-400: #5e93ff;
+  --color-brand-500: #327eff;
+  --color-brand-600: #1b60f5;
+  --color-brand-700: #144ae1;
+  --color-brand-800: #173db6;
+  --color-brand-900: #19398f;
+  --color-brand-950: #142457;
+
+  --color-ink-50: #f6f5f8;
+  --color-ink-100: #eceaf2;
+  --color-ink-200: #d6d2e4;
+  --color-ink-300: #b3accd;
+  --color-ink-400: #8a80ae;
+  --color-ink-500: #6b6093;
+  --color-ink-600: #564b79;
+  --color-ink-700: #453d61;
+  --color-ink-800: #2a2260;
+  --color-ink-900: #150a5e;
+  --color-ink-950: #0c0045;
+
+  --color-mint-50: #ebfdf3;
+  --color-mint-500: #12b76a;
+  --color-mint-700: #027a48;
+
+  --color-surface: #f6f5f8;
+  --color-muted: #4e4e55;
+
+  --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
+
+  --text-display: clamp(2.5rem, 1.6rem + 3.6vw, 4.5rem);
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.03em;
+
+  --text-h2: clamp(1.875rem, 1.3rem + 2vw, 3rem);
+  --text-h2--line-height: 1.12;
+  --text-h2--letter-spacing: -0.02em;
+
+  --radius-4xl: 2rem;
+
+  --shadow-card: 0 1px 2px rgb(12 0 69 / 0.04), 0 12px 32px -12px rgb(12 0 69 / 0.12);
+  --shadow-lift: 0 2px 4px rgb(12 0 69 / 0.05), 0 24px 48px -16px rgb(12 0 69 / 0.2);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 6rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-white font-sans text-ink-800 antialiased;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand-500;
+  }
+
+  ::selection {
+    @apply bg-brand-500 text-white;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility container-page {
+  @apply mx-auto w-full max-w-[76rem] px-5 sm:px-8;
+}
+
+/* Reveal-on-scroll: opt-in via [data-reveal], driven by src/scripts/reveal.ts */
+@layer components {
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(1.25rem);
+    transition:
+      opacity 0.7s var(--ease-out-soft),
+      transform 0.7s var(--ease-out-soft);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+
+  [data-reveal].is-revealed {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-reveal] {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}

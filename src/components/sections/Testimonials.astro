@@ -1,0 +1,63 @@
+---
+import { type Locale } from '../../i18n/config'
+import { useContent } from '../../i18n/content'
+import Section from '../ui/Section.astro'
+import SectionHeading from '../ui/SectionHeading.astro'
+
+interface Props {
+  locale: Locale
+}
+
+const { locale } = Astro.props
+const t = useContent(locale)
+const rating = locale === 'fr' ? '4,9' : '4.9'
+---
+
+<Section id="testimonials" tone="ink">
+  <div class="flex flex-col items-center gap-6">
+    <SectionHeading eyebrow={t.testimonials.eyebrow} title={t.testimonials.title} tone="dark" />
+
+    <div class="flex items-center gap-3" data-reveal>
+      <div class="flex gap-0.5" role="img" aria-label={`${t.testimonials.ratingLabel}: ${rating}/5`}>
+        {
+          Array.from({ length: 5 }).map(() => (
+            <svg viewBox="0 0 20 20" fill="currentColor" class="size-5 text-amber-400" aria-hidden="true">
+              <path d="M10 1.5l2.6 5.3 5.9.8-4.3 4.1 1 5.8L10 14.8 4.8 17.5l1-5.8L1.5 7.6l5.9-.8L10 1.5Z" />
+            </svg>
+          ))
+        }
+      </div>
+      <span class="text-2xl font-extrabold text-white">{rating}</span>
+      <span class="text-sm text-ink-300">/ 5</span>
+    </div>
+  </div>
+
+  <div class="mt-14 grid gap-6 md:grid-cols-3">
+    {
+      t.testimonials.items.map((item) => (
+        <figure
+          class="flex h-full flex-col gap-6 rounded-4xl bg-white/[0.06] p-8 ring-1 ring-white/10 backdrop-blur-sm transition duration-300 hover:bg-white/[0.09]"
+          data-reveal
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" class="size-8 text-brand-400/60" aria-hidden="true">
+            <path d="M9.5 6C6.5 7.6 5 10.2 5 13.7V18h5.6v-5.4H8.2c0-1.9.8-3.3 2.5-4.2L9.5 6Zm9 0c-3 1.6-4.5 4.2-4.5 7.7V18h5.6v-5.4h-2.4c0-1.9.8-3.3 2.5-4.2L18.5 6Z" />
+          </svg>
+          <blockquote class="flex-1 leading-relaxed text-ink-100 text-pretty">
+            <p>“{item.quote}”</p>
+          </blockquote>
+          <figcaption class="flex items-center gap-3 border-t border-white/10 pt-5">
+            <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-500/20 text-sm font-bold text-brand-200 ring-1 ring-brand-400/30">
+              {item.author.slice(0, 1)}
+            </span>
+            <span class="flex flex-col">
+              <span class="text-sm font-bold text-white">{item.author}</span>
+              <span class="text-xs text-ink-300">
+                {item.role} · {item.company}
+              </span>
+            </span>
+          </figcaption>
+        </figure>
+      ))
+    }
+  </div>
+</Section>

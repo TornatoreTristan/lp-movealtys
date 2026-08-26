@@ -1,0 +1,36 @@
+---
+import type { GetStaticPaths } from 'astro'
+import { LOCALES, type Locale } from '../../i18n/config'
+import { buildHomeSchema } from '../../lib/schema'
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import Hero from '../../components/sections/Hero.astro'
+import Stats from '../../components/sections/Stats.astro'
+import Problem from '../../components/sections/Problem.astro'
+import Difference from '../../components/sections/Difference.astro'
+import Features from '../../components/sections/Features.astro'
+import HowItWorks from '../../components/sections/HowItWorks.astro'
+import Audience from '../../components/sections/Audience.astro'
+import Testimonials from '../../components/sections/Testimonials.astro'
+import Pricing from '../../components/sections/Pricing.astro'
+import Faq from '../../components/sections/Faq.astro'
+import FinalCta from '../../components/sections/FinalCta.astro'
+
+export const getStaticPaths = (() => LOCALES.map((lang) => ({ params: { lang } }))) satisfies GetStaticPaths
+
+const locale = Astro.params.lang as Locale
+const site = Astro.site ?? new URL('https://lp.movealtys.com')
+---
+
+<BaseLayout locale={locale} jsonLd={buildHomeSchema(locale, site)}>
+  <Hero locale={locale} />
+  <Stats locale={locale} />
+  <Problem locale={locale} />
+  <Difference locale={locale} />
+  <Features locale={locale} />
+  <HowItWorks locale={locale} />
+  <Audience locale={locale} />
+  <Testimonials locale={locale} />
+  <Pricing locale={locale} />
+  <Faq locale={locale} />
+  <FinalCta locale={locale} />
+</BaseLayout>

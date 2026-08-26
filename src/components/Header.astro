@@ -1,0 +1,157 @@
+---
+import { type Locale } from '../i18n/config'
+import { useContent, APP_URLS } from '../i18n/content'
+import Button from './ui/Button.astro'
+import LanguageSwitcher from './LanguageSwitcher.astro'
+
+interface Props {
+  locale: Locale
+}
+
+const { locale } = Astro.props
+const t = useContent(locale)
+
+const links = [
+  { href: '#features', label: t.nav.features },
+  { href: '#how', label: t.nav.how },
+  { href: '#audience', label: t.nav.audience },
+  { href: '#pricing', label: t.nav.pricing },
+  { href: '#faq', label: t.nav.faq },
+]
+---
+
+<header
+  id="site-header"
+  class="sticky top-0 z-50 border-b border-transparent transition-[background-color,border-color,backdrop-filter] duration-300"
+  data-header
+>
+  <div class="container-page flex h-18 items-center justify-between gap-6">
+    <a href={`/${locale}/`} class="shrink-0" aria-label="MoveAltys">
+      <img src="/img/movealtys-logo.svg" alt="MoveAltys" width="151" height="32" class="h-8 w-auto" />
+    </a>
+
+    <nav aria-label="Principal" class="hidden items-center gap-1 lg:flex">
+      {
+        links.map((link) => (
+          <a
+            href={link.href}
+            class="rounded-full px-3 py-2 text-sm font-medium text-ink-700 transition hover:bg-ink-50 hover:text-ink-950"
+          >
+            {link.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <div class="hidden items-center gap-3 lg:flex">
+      <LanguageSwitcher locale={locale} />
+      <a
+        href={APP_URLS.login}
+        class="rounded-full px-3 py-2 text-sm font-semibold text-ink-800 transition hover:text-brand-600"
+        data-track="cta_login_click"
+        data-cta-location="header"
+        data-cta-destination="login"
+      >
+        {t.nav.login}
+      </a>
+      <Button href={APP_URLS.register} track="cta_signup_click" ctaLocation="header" ctaDestination="register">
+        {t.nav.signup}
+      </Button>
+    </div>
+
+    <button
+      type="button"
+      class="inline-flex size-10 items-center justify-center rounded-full text-ink-900 ring-1 ring-ink-200 lg:hidden"
+      aria-expanded="false"
+      aria-controls="mobile-menu"
+      aria-label={t.nav.openMenu}
+      data-menu-toggle
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-5" aria-hidden="true">
+        <path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round" data-menu-icon-open></path>
+        <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" class="hidden" data-menu-icon-close></path>
+      </svg>
+    </button>
+  </div>
+
+  <div id="mobile-menu" class="hidden border-t border-ink-100 bg-white lg:hidden" data-menu-panel>
+    <nav aria-label="Principal (mobile)" class="container-page flex flex-col gap-1 py-4">
+      {
+        links.map((link) => (
+          <a
+            href={link.href}
+            class="rounded-xl px-3 py-3 text-base font-medium text-ink-800 transition hover:bg-ink-50"
+            data-menu-link
+          >
+            {link.label}
+          </a>
+        ))
+      }
+      <div class="mt-3 flex items-center justify-between gap-3 border-t border-ink-100 pt-4">
+        <LanguageSwitcher locale={locale} />
+        <a
+          href={APP_URLS.login}
+          class="px-2 text-sm font-semibold text-ink-800"
+          data-track="cta_login_click"
+          data-cta-location="header_mobile"
+          data-cta-destination="login"
+        >
+          {t.nav.login}
+        </a>
+      </div>
+      <Button
+        href={APP_URLS.register}
+        size="lg"
+        class="mt-2 w-full"
+        track="cta_signup_click"
+        ctaLocation="header_mobile"
+        ctaDestination="register"
+      >
+        {t.nav.signup}
+      </Button>
+    </nav>
+  </div>
+</header>
+
+<script>
+  const header = document.querySelector<HTMLElement>('[data-header]')
+  const toggle = document.querySelector<HTMLButtonElement>('[data-menu-toggle]')
+  const panel = document.querySelector<HTMLElement>('[data-menu-panel]')
+  const iconOpen = document.querySelector<SVGPathElement>('[data-menu-icon-open]')
+  const iconClose = document.querySelector<SVGPathElement>('[data-menu-icon-close]')
+
+  const SOLID = ['bg-white/85', 'backdrop-blur-md', 'border-ink-100']
+
+  function syncHeader() {
+    if (!header) return
+    header.classList.toggle('bg-white/85', window.scrollY > 8)
+    header.classList.toggle('backdrop-blur-md', window.scrollY > 8)
+    header.classList.toggle('border-ink-100', window.scrollY > 8)
+  }
+
+  function setMenu(open: boolean) {
+    if (!toggle || !panel) return
+    panel.classList.toggle('hidden', !open)
+    toggle.setAttribute('aria-expanded', String(open))
+    iconOpen?.classList.toggle('hidden', open)
+    iconClose?.classList.toggle('hidden', !open)
+    // An open panel needs the solid background even at scrollY 0.
+    if (open) header?.classList.add(...SOLID)
+    else syncHeader()
+  }
+
+  toggle?.addEventListener('click', () => {
+    setMenu(toggle.getAttribute('aria-expanded') !== 'true')
+  })
+
+  document.querySelectorAll('[data-menu-link]').forEach((link) => {
+    link.addEventListener('click', () => setMenu(false))
+  })
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') setMenu(false)
+  })
+
+  window.addEventListener('scroll', syncHeader, { passive: true })
+  syncHeader()
+</script>

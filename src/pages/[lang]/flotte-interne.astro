@@ -1,0 +1,24 @@
+---
+import type { GetStaticPaths } from 'astro'
+import { LOCALES, type Locale } from '../../i18n/config'
+import { useContent } from '../../i18n/content'
+import { buildSegmentSchema } from '../../lib/schema'
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import SegmentLanding from '../../components/SegmentLanding.astro'
+
+export const getStaticPaths = (() => LOCALES.map((lang) => ({ params: { lang } }))) satisfies GetStaticPaths
+
+const locale = Astro.params.lang as Locale
+const segment = useContent(locale).internalFleet
+const site = Astro.site ?? new URL('https://lp.movealtys.com')
+---
+
+<BaseLayout
+  locale={locale}
+  title={segment.meta.title}
+  description={segment.meta.description}
+  path="flotte-interne"
+  jsonLd={buildSegmentSchema(locale, site, 'flotte-interne', 'internalFleet')}
+>
+  <SegmentLanding locale={locale} segment={segment} planIndex={1} />
+</BaseLayout>

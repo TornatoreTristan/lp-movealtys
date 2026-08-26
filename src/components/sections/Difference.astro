@@ -1,0 +1,86 @@
+---
+import { type Locale } from '../../i18n/config'
+import { useContent } from '../../i18n/content'
+import Section from '../ui/Section.astro'
+import SectionHeading from '../ui/SectionHeading.astro'
+
+interface Props {
+  locale: Locale
+}
+
+const { locale } = Astro.props
+const t = useContent(locale)
+
+const [baseline, movealtys] = t.difference.columns
+---
+
+<Section id="difference" tone="ink">
+  <SectionHeading
+    eyebrow={t.difference.eyebrow}
+    title={t.difference.title}
+    lead={t.difference.lead}
+    tone="dark"
+  />
+
+  <div class="mt-14 grid gap-6 lg:grid-cols-2 lg:items-start">
+    <!-- What the rest of the market stops at. -->
+    <article class="flex flex-col gap-5 rounded-4xl border border-white/10 bg-white/5 p-8" data-reveal>
+      <h3 class="text-sm font-bold tracking-widest text-ink-400 uppercase">{baseline.label}</h3>
+      <ul class="flex flex-col gap-3.5">
+        {
+          baseline.items.map((item) => (
+            <li class="flex items-start gap-3 text-[0.95rem] leading-relaxed text-ink-300">
+              <svg
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                class="mt-1 size-4 shrink-0 text-ink-500"
+                aria-hidden="true"
+              >
+                <path d="M6 6l8 8M14 6l-8 8" />
+              </svg>
+              {item}
+            </li>
+          ))
+        }
+      </ul>
+    </article>
+
+    <!-- Where MoveAltys keeps going. -->
+    <article
+      class="flex flex-col gap-5 rounded-4xl bg-white p-8 shadow-lift ring-1 ring-white/20 lg:-my-2 lg:py-10"
+      data-reveal
+    >
+      <h3 class="text-sm font-bold tracking-widest text-brand-600 uppercase">{movealtys.label}</h3>
+      <ul class="flex flex-col gap-3.5">
+        {
+          movealtys.items.map((item) => (
+            <li class="flex items-start gap-3 text-[0.95rem] leading-relaxed font-medium text-ink-900">
+              <svg viewBox="0 0 20 20" fill="currentColor" class="mt-0.5 size-4 shrink-0 text-brand-500" aria-hidden="true">
+                <path
+                  fill-rule="evenodd"
+                  d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 1 1 1.4-1.4l3.8 3.8 6.8-6.8a1 1 0 0 1 1.4 0Z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              {item}
+            </li>
+          ))
+        }
+      </ul>
+    </article>
+  </div>
+
+  <ul class="mt-12 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-5">
+    {
+      t.difference.pillars.map((pillar) => (
+        <li class="flex flex-col gap-2 border-t border-white/10 pt-5" data-reveal>
+          <h3 class="text-sm font-bold text-white text-balance">{pillar.title}</h3>
+          <p class="text-sm leading-relaxed text-ink-400 text-pretty">{pillar.body}</p>
+        </li>
+      ))
+    }
+  </ul>
+</Section>

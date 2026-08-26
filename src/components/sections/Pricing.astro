@@ -1,0 +1,103 @@
+---
+import { type Locale } from '../../i18n/config'
+import { useContent, APP_URLS, CONTACT } from '../../i18n/content'
+import { PLAN_SLUGS } from '../../lib/tracking'
+import Section from '../ui/Section.astro'
+import SectionHeading from '../ui/SectionHeading.astro'
+import Button from '../ui/Button.astro'
+
+interface Props {
+  locale: Locale
+}
+
+const { locale } = Astro.props
+const t = useContent(locale)
+
+const highlightedIndex = 1
+const lastIndex = t.pricing.plans.length - 1
+---
+
+<Section id="pricing" tone="surface">
+  <SectionHeading eyebrow={t.pricing.eyebrow} title={t.pricing.title} lead={t.pricing.lead} />
+
+  <div class="mt-14 grid items-start gap-6 lg:grid-cols-3">
+    {
+      t.pricing.plans.map((plan, index) => {
+        const highlighted = index === highlightedIndex
+        const isEnterprise = index === lastIndex
+        return (
+          <article
+            class:list={[
+              'relative flex h-full flex-col gap-6 rounded-4xl p-8 transition duration-300',
+              highlighted
+                ? 'bg-ink-950 text-white shadow-lift ring-1 ring-ink-950 lg:-my-4 lg:py-12'
+                : 'border border-ink-100 bg-white hover:shadow-card',
+            ]}
+            data-reveal
+          >
+            {highlighted && (
+              <span class="absolute -top-3 left-8 rounded-full bg-brand-500 px-3 py-1 text-[0.65rem] font-bold tracking-widest text-white uppercase">
+                {t.pricing.popular}
+              </span>
+            )}
+
+            <div class="flex flex-col gap-2">
+              <h3 class:list={['text-lg font-bold', highlighted ? 'text-white' : 'text-ink-950']}>{plan.name}</h3>
+              <p class:list={['text-sm leading-relaxed', highlighted ? 'text-ink-300' : 'text-muted']}>
+                {plan.description}
+              </p>
+            </div>
+
+            <p class="flex flex-wrap items-baseline gap-x-1.5">
+              <span
+                class:list={['text-3xl font-extrabold tracking-tight', highlighted ? 'text-white' : 'text-ink-950']}
+              >
+                {plan.price}
+              </span>
+              {plan.period && (
+                <span class:list={['text-sm font-semibold', highlighted ? 'text-ink-300' : 'text-ink-400']}>
+                  {plan.period}
+                </span>
+              )}
+            </p>
+
+            <ul class:list={['flex flex-1 flex-col gap-3 border-t pt-6', highlighted ? 'border-white/10' : 'border-ink-100']}>
+              {plan.features.map((feature) => (
+                <li class:list={['flex items-start gap-2.5 text-sm', highlighted ? 'text-ink-100' : 'text-ink-800']}>
+                  <svg
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class:list={['mt-0.5 size-4 shrink-0', highlighted ? 'text-brand-400' : 'text-brand-500']}
+                    aria-hidden="true"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 1 1 1.4-1.4l3.8 3.8 6.8-6.8a1 1 0 0 1 1.4 0Z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                  {feature}
+                </li>
+              ))}
+            </ul>
+
+            <Button
+              href={isEnterprise ? `mailto:${CONTACT.email}` : APP_URLS.register}
+              variant={highlighted ? 'primary' : 'secondary'}
+              size="lg"
+              class="w-full"
+              track={isEnterprise ? 'contact_request' : 'cta_signup_click'}
+              ctaLocation={isEnterprise ? 'pricing_enterprise' : 'pricing_card'}
+              ctaDestination={isEnterprise ? 'mailto' : 'register'}
+              plan={PLAN_SLUGS[index]}
+            >
+              {isEnterprise ? t.pricing.ctaEnterprise : t.pricing.cta}
+            </Button>
+          </article>
+        )
+      })
+    }
+  </div>
+
+  <p class="mt-8 text-center text-xs text-ink-400">{t.pricing.footnote}</p>
+</Section>

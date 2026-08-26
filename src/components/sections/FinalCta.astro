@@ -1,0 +1,56 @@
+---
+import { type Locale } from '../../i18n/config'
+import { useContent, APP_URLS, CONTACT } from '../../i18n/content'
+import Button from '../ui/Button.astro'
+
+interface Props {
+  locale: Locale
+}
+
+const { locale } = Astro.props
+const t = useContent(locale)
+---
+
+<section class="bg-white py-20 sm:py-28">
+  <div class="container-page">
+    <div
+      class="relative overflow-hidden rounded-[2.5rem] bg-ink-950 px-8 py-16 text-center sm:px-16 sm:py-20"
+      data-reveal
+    >
+      <div class="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div class="absolute -top-24 left-1/2 size-[30rem] -translate-x-1/2 rounded-full bg-brand-500/25 blur-3xl"></div>
+        <div
+          class="absolute inset-0 opacity-20 [mask-image:radial-gradient(70%_70%_at_50%_50%,black,transparent)]"
+          style="background-image:linear-gradient(to right,rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(to bottom,rgba(255,255,255,.14) 1px,transparent 1px);background-size:48px 48px"
+        >
+        </div>
+      </div>
+
+      <div class="relative mx-auto flex max-w-3xl flex-col items-center gap-6">
+        <h2 class="text-h2 font-extrabold text-white text-balance">{t.finalCta.title}</h2>
+        <p class="text-lg leading-relaxed text-ink-200 text-pretty">{t.finalCta.lead}</p>
+        <div class="mt-2 flex flex-col gap-3 sm:flex-row">
+          <Button
+            href={APP_URLS.register}
+            size="lg"
+            track="cta_signup_click"
+            ctaLocation="final_cta"
+            ctaDestination="register"
+          >
+            {t.finalCta.cta}
+          </Button>
+          <Button
+            href={`mailto:${CONTACT.email}`}
+            variant="secondary"
+            size="lg"
+            track="contact_request"
+            ctaLocation="final_cta"
+            ctaDestination="mailto"
+          >
+            {t.finalCta.secondary}
+          </Button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,72 @@
+---
+import type { GetStaticPaths } from 'astro'
+import { LOCALES, type Locale } from '../../i18n/config'
+import { STATIC_PAGES, PAGE_SLUGS, isDrafted, type PageSlug } from '../../lib/static-pages'
+import BaseLayout from '../../layouts/BaseLayout.astro'
+
+export const getStaticPaths = (() =>
+  LOCALES.flatMap((lang) => PAGE_SLUGS.map((page) => ({ params: { lang, page } })))) satisfies GetStaticPaths
+
+const locale = Astro.params.lang as Locale
+const slug = Astro.params.page as PageSlug
+const page = STATIC_PAGES[slug][locale]
+
+// Drafted pages render their copy and get indexed; stubs stay noindex until written.
+const content = isDrafted(page) ? page : null
+const stub = isDrafted(page) ? null : page
+
+const copy =
+  locale === 'fr'
+    ? { notice: 'Cette page est un gabarit : le contenu définitif reste à rédiger.', back: "Retour à l'accueil" }
+    : { notice: 'This page is a placeholder: the final content is still to be written.', back: 'Back to home' }
+---
+
+<BaseLayout locale={locale} title={`${page.title} · MoveAltys`} path={slug} noindex={!content}>
+  <article class="container-page py-20 sm:py-28">
+    <div class="mx-auto flex max-w-2xl flex-col gap-8">
+      <h1 class="text-h2 font-extrabold text-ink-950 text-balance">{page.title}</h1>
+
+      {
+        content && (
+          <>
+            <p class="text-lg leading-relaxed text-muted text-pretty">{content.intro}</p>
+
+            <div class="flex flex-col gap-10">
+              {content.sections.map((section) => (
+                <section class="flex flex-col gap-3">
+                  <h2 class="text-lg font-bold text-ink-950 text-balance">{section.heading}</h2>
+                  {section.body.map((paragraph) => (
+                    <p class="leading-relaxed text-ink-800 text-pretty">{paragraph}</p>
+                  ))}
+                </section>
+              ))}
+            </div>
+          </>
+        )
+      }
+
+      {
+        stub && (
+          <>
+            <p class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-900">
+              {copy.notice}
+            </p>
+
+            <ul class="flex flex-col gap-3">
+              {stub.outline.map((item) => (
+                <li class="flex items-start gap-3 rounded-2xl border border-ink-100 bg-white px-5 py-4 text-ink-800">
+                  <span class="mt-2 size-1.5 shrink-0 rounded-full bg-brand-500" aria-hidden="true" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </>
+        )
+      }
+
+      <a href={`/${locale}/`} class="text-sm font-semibold text-brand-600 transition hover:text-brand-700">
+        ← {copy.back}
+      </a>
+    </div>
+  </article>
+</BaseLayout>

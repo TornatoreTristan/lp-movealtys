@@ -1,0 +1,56 @@
+---
+/**
+ * Consent Mode v2 defaults, then the GTM container — but only once accepted.
+ *
+ * This is CNIL *basic* consent mode: the container is injected by `mvLoadGtm`,
+ * which nothing calls until the visitor accepts. A refusal therefore produces
+ * zero request to Google, rather than the cookieless pings advanced mode sends.
+ * The `consent default` block still runs first, so switching to advanced mode
+ * later is a GTM-side decision with no code change here.
+ *
+ * Must be the first script in <head>: the defaults have to be in the dataLayer
+ * before any tag can read them.
+ */
+import { GTM_ID } from '../../lib/tracking'
+
+const snippet = `
+window.dataLayer = window.dataLayer || [];
+function gtag(){window.dataLayer.push(arguments);}
+window.gtag = gtag;
+
+gtag('consent', 'default', {
+  ad_storage: 'denied',
+  ad_user_data: 'denied',
+  ad_personalization: 'denied',
+  analytics_storage: 'denied',
+  functionality_storage: 'granted',
+  security_storage: 'granted',
+  wait_for_update: 500
+});
+gtag('set', 'ads_data_redaction', true);
+gtag('set', 'url_passthrough', true);
+
+window.mvLoadGtm = function () {
+  if (window.mvGtmLoaded) return;
+  window.mvGtmLoaded = true;
+  window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+  var script = document.createElement('script');
+  script.async = true;
+  script.src = 'https://www.googletagmanager.com/gtm.js?id=' + encodeURIComponent(${JSON.stringify(GTM_ID)});
+  document.head.appendChild(script);
+};
+
+var stored = document.cookie.match(/(?:^|;\\s*)mv_consent=([^;]*)/);
+if (stored && decodeURIComponent(stored[1]) === 'granted') {
+  gtag('consent', 'update', {
+    ad_storage: 'granted',
+    ad_user_data: 'granted',
+    ad_personalization: 'granted',
+    analytics_storage: 'granted'
+  });
+  window.mvLoadGtm();
+}
+`.trim()
+---
+
+<script is:inline set:html={snippet} />
