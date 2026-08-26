@@ -28,3 +28,6 @@ pnpm-debug.log*
 
 # notes de travail internes
 movealtys-analyse-concurrence-icp.md
+
+# exports de conteneur GTM (dépôt public : configuration de mesure non publiée)
+GTM-*.json

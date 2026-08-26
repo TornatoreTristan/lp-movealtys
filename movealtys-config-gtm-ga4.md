@@ -11,6 +11,37 @@ tant que §2 n'est pas publié.
 
 ---
 
+## 0.1 Ce que contient déjà le conteneur `GTM-KDVSW56S`
+
+Relevé sur l'export du 26 août 2026 (`workspace6`). Rien de tout cela n'était documenté ; c'est le point
+de départ réel, pas une page blanche.
+
+| Balise | Ce qu'elle fait |
+|---|---|
+| `00_GA4` | Balise Google, `G-CKKH5M76NL`, **routée en server-side vers `sst.movealtys.com`** |
+| `00_Ads_settings` | Balise Google Ads `AW-18194899813` |
+| `00_ADS_Linker` | Conversion Linker, cross-domain |
+| `ADS_Essai_Gratuit` | Conversion Ads (`eECICILQi90cEOXGgORD`) |
+| `Microsoft Clarity` | Session replay, projet `y7dr77i6pg` |
+
+Trois conséquences pour ce plan :
+
+**Il y a du server-side tagging.** `sst.movealtys.com` est un quatrième hôte, mais ce n'est pas un hôte de
+pages : **ne pas l'ajouter** à « Configurer vos domaines ». Le plan fonctionne à l'identique — les
+événements partent du navigateur vers le conteneur serveur, qui les relaie à GA4.
+
+**Les déclencheurs existants sont des clics sur URL** (`Click URL contient app.movealtys.com/register`).
+Ils continueront de fonctionner sur la landing — la décoration des liens ajoute des paramètres de requête
+sans toucher au chemin. Mais ils **ne captent pas la soumission du formulaire hero**, qui est un `submit`
+et non un clic : c'est un trou de mesure sur le signal le plus qualifié du site. D'où le déclencheur
+`CE - Lead (formulaire hero)` ajouté à la conversion Ads.
+
+**Aucune balise n'a de vérification de consentement** (`consentStatus: NOT_SET`). Sur la landing ce n'est
+pas bloquant — le conteneur n'y est injecté qu'après acceptation. Sur la vitrine et l'app, en revanche,
+ces balises se déclenchent sans condition. Voir l'encadré du §2.
+
+---
+
 ## 0. Ce que le dépôt fournit déjà
 
 | Élément | Où |
@@ -44,14 +75,26 @@ Voir `.env.example`.
    l'app déclarée comme domaine interne.
 
 ### 1.2 Configurer vos domaines — le point critique
-Admin → Flux de données → *le flux web* → Balisage → **Configurer vos domaines**.
-Ajouter **les trois**, en correspondance exacte :
+```
+Admin → Flux de données → [le flux web]
+      → Balise Google → Configurer les paramètres de balise
+      → Configurer vos domaines
+```
+
+Ajouter **les trois**, en correspondance « Contient » :
 
 ```
 movealtys.com
 lp.movealtys.com
 app.movealtys.com
 ```
+
+**Pas `sst.movealtys.com`** : c'est le conteneur serveur, pas un hôte de pages. L'y ajouter n'a aucun
+effet utile et brouille la lecture pour la personne qui reprendra la configuration.
+
+Dans le même panneau, **Répertorier les renvois indésirables** → ajouter `movealtys.com` en « Contient ».
+Les trois hôtes partagent le cookie, donc la session ne devrait pas se couper de toute façon ; cette liste
+est la ceinture qui rattrape les cas où le cookie manque — navigation privée, ITP, tout premier passage.
 
 Sans ça, chaque passage d'une propriété à l'autre casse la session et réattribue la conversion à
 `movealtys.com / referral`. C'est l'erreur la plus fréquente et la plus coûteuse du dispositif, et avec
@@ -111,12 +154,23 @@ contact_location  contact_method    lead_type      lp_id
 page_type         segment           page_lang      consent_state
 ```
 
-### 2.2 Déclencheur
-Un seul, type **Événement personnalisé** :
+### 2.2 Déclencheurs
+Deux, tous deux de type **Événement personnalisé**, avec ☑ *Utiliser la correspondance d'expression
+régulière*. Deux plutôt qu'un seul gros : chaque équipe fait évoluer le sien sans toucher à celui de
+l'autre, et une erreur de regex ne coupe pas la mesure des deux côtés à la fois.
 
-- Nom : `CE - Landing events`
-- Nom de l'événement : `^(cta_signup_click|generate_lead|cta_login_click|contact_request)$`
-- ☑ Utiliser la correspondance d'expression régulière
+**`CE - Landing events`**
+```
+^(cta_signup_click|generate_lead|cta_login_click|contact_request)$
+```
+
+**`CE - App events`**
+```
+^(sign_up_start|sign_up_submit|sign_up_error|sign_up|email_verified|onboarding_complete|first_route_created|login)$
+```
+
+Ajouter un événement au plan, c'est donc une seule chose à faire : l'ajouter à la regex du déclencheur
+concerné. Rien d'autre ne bouge — ni la balise, ni les variables.
 
 ### 2.3 Balises
 
@@ -129,11 +183,12 @@ Un seul, type **Événement personnalisé** :
 **b. Événement GA4 — une seule balise pour les quatre événements**
 - Nom de l'événement : `{{Event}}` (variable intégrée : reprend le nom poussé dans le `dataLayer`)
 - Paramètres d'événement : les douze variables du §2.1, chacune sous son propre nom
-- Déclencheur : `CE - Landing events`
+- Déclencheurs : `CE - Landing events` **et** `CE - App events`
 
 GTM omet automatiquement les paramètres dont la variable est vide, donc `contact_location` ne part que
-sur `contact_request` et `plan` que depuis les cartes tarifs. Une balise suffit ; en ajouter une par
-événement ne changerait rien à la donnée et multiplierait la maintenance.
+sur `contact_request` et `plan` que depuis les cartes tarifs. **Une seule balise suffit pour les douze
+événements des trois propriétés** ; en ajouter une par événement ne changerait rien à la donnée et
+multiplierait la maintenance par douze.
 
 **c. Paramètres de consentement des deux balises**
 Onglet *Consentement* → « Vérifications de consentement supplémentaires » → exiger
