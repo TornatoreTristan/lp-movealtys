@@ -105,5 +105,5 @@ Variables d'environnement **d'exécution** (à définir dans Coolify) :
 | `SIGNUP_WEBHOOK_URL`    | URL qui reçoit la notification. Absente : rien n'est envoyé |
 | `SIGNUP_WEBHOOK_SECRET` | Optionnel, transmis dans l'en-tête `X-Webhook-Secret`       |
 
-La route n'accepte que les requêtes venant du site et limite à 5 envois par IP
-toutes les 10 minutes.
+La route n'accepte que les requêtes venant du site, n'envoie qu'une notification
+par adresse email toutes les 10 minutes et 30 au total sur la même période.

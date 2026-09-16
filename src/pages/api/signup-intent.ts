@@ -17,22 +17,22 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MAX_BODY_BYTES = 4096
 const WEBHOOK_TIMEOUT_MS = 5000
 
-/** Per-IP ceiling, in memory: enough to keep a script from flooding the channel. */
-const RATE_LIMIT = { max: 5, windowMs: 10 * 60 * 1000 }
-const hits = new Map<string, number[]>()
+/**
+ * In-memory limits. Not keyed by IP: behind the production proxy chain the
+ * address the server sees is a proxy's, shared by every visitor.
+ */
+const WINDOW_MS = 10 * 60 * 1000
+/** Ceiling across all visitors, so a script cannot flood the channel. */
+const GLOBAL_MAX = 30
+const recentSends: number[] = []
+/** One notification per address per window: resubmits and double clicks stay silent. */
+const lastSentByEmail = new Map<string, number>()
 
-function rateLimited(ip: string): boolean {
-  const now = Date.now()
-  const recent = (hits.get(ip) ?? []).filter((at) => now - at < RATE_LIMIT.windowMs)
-  recent.push(now)
-  hits.set(ip, recent)
-
-  if (hits.size > 10_000) {
-    for (const [key, times] of hits) {
-      if (times.every((at) => now - at >= RATE_LIMIT.windowMs)) hits.delete(key)
-    }
+function prune(now: number): void {
+  while (recentSends.length && now - recentSends[0] >= WINDOW_MS) recentSends.shift()
+  for (const [email, at] of lastSentByEmail) {
+    if (now - at >= WINDOW_MS) lastSentByEmail.delete(email)
   }
-  return recent.length > RATE_LIMIT.max
 }
 
 /** Only this site may post: the production host, or whatever host served the page (dev, preview). */
@@ -54,7 +54,7 @@ function text(value: unknown, max = 200): string | undefined {
 
 const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as const
 
-export const POST: APIRoute = async ({ request, clientAddress }) => {
+export const POST: APIRoute = async ({ request }) => {
   if (!sameOrigin(request)) return new Response(null, { status: 403 })
 
   const raw = await request.text()
@@ -71,8 +71,13 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   const email = text(body.email, 254)?.toLowerCase()
   if (!email || !EMAIL_PATTERN.test(email)) return new Response(null, { status: 400 })
 
-  const ip = request.headers.get('x-forwarded-for')?.split(',').at(-1)?.trim() || clientAddress
-  if (rateLimited(ip)) return new Response(null, { status: 429 })
+  const now = Date.now()
+  prune(now)
+  if (lastSentByEmail.has(email)) return new Response(null, { status: 204 })
+  if (recentSends.length >= GLOBAL_MAX) {
+    console.warn('[signup-intent] global limit reached, intent dropped')
+    return new Response(null, { status: 429 })
+  }
 
   if (!SIGNUP_WEBHOOK_URL) {
     console.warn('[signup-intent] SIGNUP_WEBHOOK_URL is not set, intent dropped')
@@ -112,6 +117,9 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     console.error('[signup-intent] webhook unreachable', error)
     return new Response(null, { status: 502 })
   }
+
+  recentSends.push(now)
+  lastSentByEmail.set(email, now)
 
   return new Response(null, { status: 204 })
 }
