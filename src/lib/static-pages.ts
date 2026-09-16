@@ -162,6 +162,14 @@ export const STATIC_PAGES = {
           ],
         },
         {
+          heading: "Formulaire d’essai gratuit",
+          body: [
+            "Lorsque l’utilisateur saisit son adresse email dans le formulaire d’essai gratuit de la page d’accueil, cette adresse est transmise à l’équipe Movealtys afin de l’informer de la demande d’inscription et de pouvoir, le cas échéant, accompagner l’utilisateur dans la création de son compte.",
+            "Sont transmis avec l’adresse email : la langue et la page du site depuis laquelle le formulaire a été envoyé, la page de provenance, les paramètres de campagne présents dans l’adresse de la page (utm) et, si l’utilisateur a accepté les cookies de mesure d’audience, un identifiant de visite.",
+            "Ce traitement repose sur les mesures précontractuelles prises à la demande de l’utilisateur. Il a lieu indépendamment de son choix en matière de cookies, puisqu’il ne sert pas à la mesure d’audience.",
+          ],
+        },
+        {
           heading: "Finalités du traitement",
           body: [
             "Les données collectées sont utilisées pour la gestion des comptes utilisateurs, la facturation, l’accès aux fonctionnalités du logiciel, ainsi que pour améliorer la qualité des services proposés.",
@@ -220,6 +228,14 @@ export const STATIC_PAGES = {
           body: [
             "When using the website and services offered by Movealtys, certain data may be collected, including the email address provided during registration or via the contact form.",
             "In the context of using the SaaS solution, other data necessary for the service’s operation may also be recorded.",
+          ],
+        },
+        {
+          heading: "Free Trial Form",
+          body: [
+            "When users enter their email address in the free trial form on the home page, this address is sent to the Movealtys team to notify it of the signup request and, where appropriate, to help users set up their account.",
+            "The following are sent along with the email address: the language and the page of the website from which the form was submitted, the referring page, any campaign parameters present in the page address (utm) and, if the user has accepted audience measurement cookies, a visit identifier.",
+            "This processing is based on pre-contractual measures taken at the user’s request. It takes place regardless of the user’s cookie choices, as it is not used for audience measurement.",
           ],
         },
         {
