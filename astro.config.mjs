@@ -1,5 +1,6 @@
 // @ts-check
-import { defineConfig } from 'astro/config'
+import { defineConfig, envField } from 'astro/config'
+import node from '@astrojs/node'
 import sitemap from '@astrojs/sitemap'
 import tailwindcss from '@tailwindcss/vite'
 import { PAGE_SLUGS } from './src/lib/static-pages'
@@ -9,6 +10,18 @@ export const SITE_URL = 'https://lp.movealtys.com'
 
 export default defineConfig({
   site: SITE_URL,
+  // Every page stays prerendered; the adapter only serves the one on-demand
+  // route, `/api/signup-intent`, and the static build next to it.
+  adapter: node({ mode: 'standalone' }),
+  env: {
+    schema: {
+      // Where each hero-form submission is announced (n8n, Make, Zapier…).
+      // Unset: the endpoint accepts the request and drops it.
+      SIGNUP_WEBHOOK_URL: envField.string({ context: 'server', access: 'secret', optional: true, url: true }),
+      // Sent as `X-Webhook-Secret` so the receiver can reject forged calls.
+      SIGNUP_WEBHOOK_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
+    },
+  },
   // Port dédié : 4321 (défaut Astro) est partagé avec tous les autres projets
   // Astro de la machine, et le navigateur y garde en cache leurs redirections.
   server: { port: 4330 },

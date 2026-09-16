@@ -83,6 +83,27 @@ son entrée dans `LOCALE_META`, puis le dictionnaire correspondant dans
 
 ## Déploiement
 
-Build statique : la sortie `dist/` se déploie telle quelle sur Vercel, Netlify,
-Cloudflare Pages ou un hébergement classique. Commande de build `npm run build`,
-dossier de sortie `dist`.
+Image Docker (Coolify) : un serveur Node (`@astrojs/node`, port 80) sert les pages,
+toutes pré-rendues, et une seule route dynamique, `/api/signup-intent/`.
+
+### Notification d'intention d'inscription
+
+Quand un visiteur valide son email dans le formulaire du hero, la page envoie un
+`sendBeacon` à `/api/signup-intent/`, qui relaie un POST JSON vers
+`SIGNUP_WEBHOOK_URL` (n8n, Make, Zapier…) :
+
+```json
+{ "event": "signup_intent", "email": "…", "occurred_at": "…", "locale": "fr",
+  "page_path": "/fr/tpe/", "segment": "tpe", "cta_location": "hero_form",
+  "lp_id": "…", "referrer": "…", "utm_source": "…" }
+```
+
+Variables d'environnement **d'exécution** (à définir dans Coolify) :
+
+| Variable                | Rôle                                                        |
+| ----------------------- | ----------------------------------------------------------- |
+| `SIGNUP_WEBHOOK_URL`    | URL qui reçoit la notification. Absente : rien n'est envoyé |
+| `SIGNUP_WEBHOOK_SECRET` | Optionnel, transmis dans l'en-tête `X-Webhook-Secret`       |
+
+La route n'accepte que les requêtes venant du site et limite à 5 envois par IP
+toutes les 10 minutes.

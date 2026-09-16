@@ -62,6 +62,37 @@ function trackClicks(): void {
 }
 
 /**
+ * Tells the team someone is heading to /register with their email — see
+ * `src/pages/api/signup-intent.ts`. Not analytics: it goes to this site's own
+ * server whatever the consent answer, and `sendBeacon` outlives the navigation
+ * so the form never waits for it.
+ */
+function notifySignupIntent(form: HTMLFormElement, location: string): void {
+  const email = form.querySelector<HTMLInputElement>('input[name="email"]')?.value.trim()
+  if (!email || !navigator.sendBeacon) return
+
+  const { segment, pageLang } = document.body.dataset
+  const query = new URLSearchParams(window.location.search)
+  const utm = Object.fromEntries(
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']
+      .map((key) => [key, query.get(key)])
+      .filter(([, value]) => value),
+  )
+
+  const body = JSON.stringify({
+    email,
+    locale: pageLang,
+    segment,
+    page_path: window.location.pathname,
+    cta_location: location,
+    lp_id: landingId(),
+    referrer: document.referrer || undefined,
+    ...utm,
+  })
+  navigator.sendBeacon('/api/signup-intent/', new Blob([body], { type: 'application/json' }))
+}
+
+/**
  * The hero form is a GET straight to /register, so the page unloads on submit.
  * `generate_lead` is a conversion and the most qualified signal on the site —
  * worth holding the navigation for, but never longer than the hard ceiling
@@ -78,6 +109,8 @@ function trackHeroForm(): void {
     const submitButton = form.querySelector('[type="submit"]')
     const context = pageContext()
     const location = form.dataset.ctaLocation ?? 'hero_form'
+
+    notifySignupIntent(form, location)
 
     pushEvent('cta_signup_click', {
       cta_location: location,
